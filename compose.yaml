@@ -1,0 +1,40 @@
+
+services:
+  db:
+    image: postgres:16
+    container_name: dating_api_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dating_db
+      POSTGRES_USER: dating_user
+      POSTGRES_PASSWORD: dating_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dating_user -d dating_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    container_name: dating_api_web
+    restart: unless-stopped
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    environment:
+      DB_NAME: dating_db
+      DB_USER: dating_user
+      DB_PASSWORD: dating_password
+      DB_HOST: db
+      DB_PORT: 5432
+      DEBUG: "True"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
